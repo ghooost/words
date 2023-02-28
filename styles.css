@@ -58,6 +58,12 @@ body, html {
   flex-direction: column;
 }
 
+.card-note {
+  margin: 0 auto;  
+  padding: 1em;
+  font-size: 24px;
+}
+
 .card-content {
   flex: 1;
   display: flex;
@@ -84,5 +90,5 @@ body, html {
 }
 
 .card-content-variants-item-wrong {
-  color: #880000;
+  color: #a00;
 }

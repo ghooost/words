@@ -184,7 +184,23 @@ function mkNode(nodeType, className, parentNode) {
 }
 
 function loadData() {
-  const data = JSON.parse(localStorage.getItem('words'));
+  let content = localStorage.getItem('words');
+  if (!content) {
+    //let's setup some default values
+    content = JSON.stringify([
+      ['yksi', '1'],
+      ['kaksi', '2'],
+      ['kolme', '3'],
+      ['neljä', '4'],
+      ['viisi', '5'],
+      ['kuusi', '6'],
+      ['seitsemän', '7'],
+      ['kahdeksan', '8'],
+      ['yhdeksän', '9'],
+      ['kymmenen', '10'],
+    ]);
+  }
+  const data = JSON.parse(content);
   if (Array.isArray(data)) {
     storage.data = data;
   }
