@@ -46,7 +46,6 @@ function Card() {
     : CardSecond(index);
 
   content.appendChild(card);
-  return root;  
 }
 
 function CardFirst(index) {
