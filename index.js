@@ -7,6 +7,9 @@ const storage = {
   root: null,
   contentRoot: null,
   indexes: [],
+  prevScore: 0,
+  curTrue: 0,
+  curFalse: 0,
 };
 
 function install() {
@@ -57,6 +60,9 @@ function Content() {
   const root = mkDiv('content');
   storage.contentRoot = root;
   if (storage.curPage === 'test') {
+    // presetup test
+    storage.curTrue = 0;
+    storage.curFalse = 0;
     root.appendChild(Card());
   } else {
     root.appendChild(Setup());
@@ -137,15 +143,18 @@ function CardVariant(quest, answer, variants) {
     ev.preventDefault();
     if (ev.target.className === 'card-content-variants-item'){
       if (ev.target.innerHTML === answer) {
+        storage.curTrue += 1;    
         storage.contentRoot.innerHTML='';
         storage.contentRoot.appendChild(Card());
       } else {
+        storage.curFalse += 1;
         ev.target.classList.add('card-content-variants-item-wrong');
       }
     }
   })
   return root;
 }
+
 
 function dataToText(data) {
   let ret = '';
