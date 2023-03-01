@@ -36,44 +36,51 @@ body, html {
   flex: 1;
   width: 100%;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .setup-section {
-  margin-bottom: 1em;
-  padding: 1em;
-  cursor: pointer;  
+  padding: 0 1em;
+  flex: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.setup-form {
-  padding: 1em;
+.setup-section:last-child {
+  flex: 1;
+}
+ 
+.setup-section-content {
+  flex: 0;
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
-  max-width: 600px;
-  flex-wrap: wrap;
 }
 
-.setup-name {
-  display: block;
-  flex: 0 0 100%;
-  padding: 1em;
-  font-size: 1em;
-  box-sizing: border-box;
+.setup-section-title {
+  font-size: 0.8em;
+  font-weight: normal;
+  opacity: 0.5;
+  flex: 0;
 }
 
 .setup-textarea {
   display: block;
-  height: 30vh;
-  flex: 0 0 100%;
-  padding: 1em;
+  min-height: 30vh;
+  flex: 1;
+  padding: 0.2em;
   font-size: 1em;
   box-sizing: border-box;
 }
 
 .setup-button {
-  padding: 1em;
+  padding: 0.5em;
   display: block;
   cursor: pointer;
+}
+
+.setup-button-active {
+  font-weight: bold;
 }
 
 .card {

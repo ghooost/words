@@ -147,34 +147,95 @@ function CardVariant(quest, answer, variants) {
   return root;
 }
 
+function dataToText(data) {
+  let ret = '';
+  data.forEach(({name, data}) => {
+    ret += name + '\n';
+    ret += data.map(([w1, w2]) => `${w1}: ${w2}`).join('\n') + '\n';
+  })
+  return ret;
+}
+
+function textToData(text) {
+  const strs = text.split('\n');
+  const data = [];
+  let pairs = [];
+  let name = '';
+  strs.forEach((str) => {
+    const parts = str.trim().split(/\s*:\s*/);
+    if (parts.length === 1 && parts[0].length) {
+      if (name && pairs.length) {
+        data.push({
+          name,
+          data: pairs,
+        });
+      };
+      name = parts[0];
+      pairs = [];
+  } else if(parts.length === 2) {
+      pairs.push([...parts]);
+    }
+  });
+  if (name && pairs.length) {
+    data.push({
+      name,
+      data: pairs,
+    });
+  }
+  return data;
+}
 
 function Setup() {
   const root = mkDiv('setup-content');
-  storage.data.forEach(({name, data}, index) => {
+  const groups = mkDiv('setup-section', root);
+  const gt = mkNode('h2', 'setup-section-title', groups);
+  gt.innerHTML = 'Choose active collection';
+  const gr = mkDiv('setup-section-content', groups);
+  storage.data.forEach(({name}, index) => {
+    const a = mkNode('a', 'setup-button', gr);
     if (index === storage.curSection) {
-      const item = mkDiv('setup-form', root);
-      const no = mkNode('input', 'setup-name', item);
-      no.value = name;
-      const to = mkNode('textarea', 'setup-textarea', item);
-      to.value = data.map(([ele1, ele2]) => `${ele1}: ${ele2}`).join('\n');
-      const save = mkNode('a', 'setup-button', item);
-      save.innerHTML = "Save"; 
-      save.addEventListener('click', onSave);
-      if (storage.data.length > 1) {
-        const remove = mkNode('a', 'setup-button', item);
-        remove.innerHTML = "Remove"; 
-        remove.addEventListener('click', onRemove);
-      }
-    } else {
-      const item = mkDiv('setup-section', root);
-      item.addEventListener('click', onChangeSection(index));
-      item.innerHTML = name;
+      a.classList.add('setup-button-active');
     }
+    a.innerHTML = name;
+    a.addEventListener('click', onChangeSection(index));
   })
-  const add = mkDiv('setup-section', root);
-  add.innerHTML = "New section"; 
-  add.addEventListener('click', onAdd);
+  const service = mkDiv('setup-section', root);
+  const gs = mkNode('h2', 'setup-section-title', service);
+  gs.innerHTML = 'Edit collections';
+  const to = mkNode('textarea', 'setup-textarea', service);
+  to.value = dataToText(storage.data);
+  const sr = mkDiv('setup-section-content', service);
+  const save = mkNode('a', 'setup-button', sr);
+  save.innerHTML = "Save"; 
+  save.addEventListener('click', onSave);
+  const download = mkDiv('setup-button', sr);
+  download.innerHTML = "Download"; 
+  download.addEventListener('click', onDownload);
+  const reset = mkDiv('setup-button', sr);
+  reset.innerHTML = "Reset to default"; 
+  reset.addEventListener('click', onReset);
   return root;
+}
+
+function onDownload(ev) {
+  ev.preventDefault();
+  const link = document.createElement("a");
+  const file = new Blob([dataToText(storage.data)], { type: 'text/plain' });
+  link.href = URL.createObjectURL(file);
+  link.download = "words.txt";
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function onReset(ev) {
+  ev.preventDefault();
+  if (!confirm("All custom collections will be removed. Proceed?")) {
+    return;
+  }
+  storage.data = getDefaultData();
+  storage.curSection = 0;
+  saveData();
+  Page();
 }
 
 onChangeSection = (index) => (ev) => {
@@ -185,52 +246,18 @@ onChangeSection = (index) => (ev) => {
   Page();
 }
 
-function onAdd(ev) {
+function onSave(ev) {
   ev.preventDefault();
-  storage.data.push({
-    name: 'New section',
-    data: [['term', 'translation']],
-  });
-  
-  storage.curSection = storage.data.length - 1;
+  const str = document.querySelector('.setup-textarea').value;
+  const data = textToData(str);
+  if (storage.curSection >= data.length) {
+    storage.curSection = 0;
+  }
+  storage.data = data;
   storage.indexes = [];
   saveData();
   Page();
 }
-
-function onSave(ev){
-  ev.preventDefault();
-  const name = document.querySelector('.setup-name').value;
-  const data = document.querySelector('.setup-textarea').value;
-  const splitReg = /\s*:\s*/;
-  const arr = data.split('\n').map((item) => item.split(splitReg));
-  const ready = arr.filter(([e1, e2]) => e1 && e2).map(([e1, e2]) => [e1.trim(), e2.trim()]);
-  const section = storage.data[storage.curSection];
-  section.name = name;
-  section.data = ready;
-  saveData();
-  Page();
-}
-
-function onRemove(ev){
-  ev.preventDefault();
-  storage.data.splice(storage.curSection, 1);
-  if (storage.curSection >= storage.data.length) {
-    storage.curSection = storage.data.length - 1;
-  }
-  saveData();
-  Page();
-}
-
-function Main() {
-  storage.root.innerHTML = '';
-  const root = mkDiv('root', storage.root);
-  root.appendChild(Menu());
-  const content = mkDiv('content', root);
-  return content;
-}
-
-
 
 function mkDiv(className, parentNode) {
   return mkNode('div', className, parentNode);
@@ -254,31 +281,46 @@ function loadData() {
   } catch (e) {};
 
   if (!data || !Array.isArray(data) || data.length === 0 || !data[0].name) {
-    //let's setup some default values
-    data = [
-      {
-        name: 'Finnish numbers',
-        data: [
-          ['yksi', 'one'],
-          ['kaksi', 'two'],
-          ['kolme', 'three'],
-          ['neljä', 'four'],
-          ['viisi', 'five'],
-          ['kuusi', 'six'],
-          ['seitsemän', 'seven'],
-          ['kahdeksan', 'eight'],
-          ['yhdeksän', 'nine'],
-          ['kymmenen', 'ten'],
-        ],
-      },
-    ];
-  }
+    data = getDefaultData();
+  };
   let curSection = parseInt(localStorage.getItem('section'));
   if (!curSection || !data[curSection]) {
     curSection = 0;
   }
   storage.data = data;
   storage.curSection = curSection;
+}
+
+function getDefaultData() {
+  return [
+    {
+      name: 'Finnish numbers',
+      data: [
+        ['yksi', 'one'],
+        ['kaksi', 'two'],
+        ['kolme', 'three'],
+        ['neljä', 'four'],
+        ['viisi', 'five'],
+        ['kuusi', 'six'],
+        ['seitsemän', 'seven'],
+        ['kahdeksan', 'eight'],
+        ['yhdeksän', 'nine'],
+        ['kymmenen', 'ten'],
+      ],
+    },
+    {
+      name: 'Finnish weekdays',
+      data: [
+        ['maanantai', 'Monday'],
+        ['tiistai', 'Tuesday'],
+        ['keskiviikko', 'Wednesday'],
+        ['torstai', 'Thursday'],
+        ['perjantai', 'Friday'],
+        ['lauantai', 'Saturday'],
+        ['sunnuntai', 'Sunday'],
+      ],
+    },
+  ];
 }
 
 function saveData() {
