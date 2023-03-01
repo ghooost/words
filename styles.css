@@ -7,13 +7,12 @@ body, html {
 .root {
   display: flex;
   flex-direction: column;
-  min-width:600px;
   height: 100vh;
 }
 
 .menu {
   display: flex;
-  flex: 0 0 50px;
+  flex: 0;
   flex-direction: row;
 }
 
@@ -21,6 +20,7 @@ body, html {
   padding: 1em;
   opacity: 0.5;
   cursor: pointer;
+  font-size: 1em;
 }
 
 .menu-item-selected {
@@ -28,32 +28,56 @@ body, html {
 }
 
 .content {
-  flex: 1 1 100px;
+  flex: 1;
   display: flex;
 }
 
 .setup-content {
-  width: 50%;
-  padding: 1em;
-  margin: 0 auto;
+  flex: 1;
+  width: 100%;
+  overflow: auto;
 }
 
-.setup-text {
+.setup-section {
+  margin-bottom: 1em;
+  padding: 1em;
+  cursor: pointer;  
+}
+
+.setup-form {
+  padding: 1em;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  max-width: 600px;
+  flex-wrap: wrap;
+}
+
+.setup-name {
   display: block;
-  width: 100%;
-  height: 50vh;
-  font-size: 22px;
+  flex: 0 0 100%;
+  padding: 1em;
+  font-size: 1em;
+  box-sizing: border-box;
+}
+
+.setup-textarea {
+  display: block;
+  height: 30vh;
+  flex: 0 0 100%;
+  padding: 1em;
+  font-size: 1em;
+  box-sizing: border-box;
 }
 
 .setup-button {
+  padding: 1em;
   display: block;
-  font-size: 22px;
-  padding:1em;
-  margin: 0 auto;
+  cursor: pointer;
 }
 
 .card {
-  flex: 1 1 100px;
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -61,19 +85,26 @@ body, html {
 .card-note {
   margin: 0 auto;  
   padding: 1em;
-  font-size: 24px;
+  font-size: 1em;
 }
 
 .card-content {
   flex: 1;
   display: flex;
   justify-content: center;
-  align-items: center;  
+  align-items: center;
+  display: flex;
+  overflow: hidden;
 }
 
 .card-content-word {
   padding:1em;
-  font-size: 60px;
+  font-size: 2em;
+  box-sizing: border-box;
+}
+
+.card-content-word-short {
+  font-size: 4em;
 }
 
 .card-content-variants {
@@ -81,14 +112,41 @@ body, html {
   display: flex;
   flex-direction: row;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .card-content-variants-item {
-  font-size: 24px;
-  padding: 1em;
+  font-size: 1em;
+  padding: 0.5em 1em;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .card-content-variants-item-wrong {
   color: #a00;
+}
+
+@media screen and (max-width: 415px) {
+  body, html {
+    font-size: 18px;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  body, html {
+    font-size: 20px;
+  }
+  .card-content-word {
+    font-size: 4em;
+  }
+  .card-content-word-short {
+    font-size: 6em;
+  }
+  .menu-item {
+    font-size: 0.8em;
+  }
+  .card-content-variants-item {
+    font-size: 1.5em;
+  }
+    
 }
