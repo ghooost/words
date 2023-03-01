@@ -7,7 +7,8 @@ body, html {
 .root {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
+  -webkit-min-height: -webkit-fill-available;  
 }
 
 .menu {
@@ -123,7 +124,7 @@ body, html {
 }
 
 .card-content-variants-item {
-  font-size: 1em;
+  font-size: 1.2em;
   padding: 0.5em 1em;
   cursor: pointer;
   box-sizing: border-box;
@@ -135,7 +136,7 @@ body, html {
 
 @media screen and (max-width: 415px) {
   body, html {
-    font-size: 18px;
+    font-size: 20px;
   }
 }
 
@@ -152,8 +153,4 @@ body, html {
   .menu-item {
     font-size: 0.8em;
   }
-  .card-content-variants-item {
-    font-size: 1.5em;
-  }
-    
 }
