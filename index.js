@@ -191,13 +191,10 @@ function changeScore(value){
 }
 
 function extractJsonCell(row, index) {
-  if (!row || !row.c) {
+  if (!row || !row.c || row.c.length <= index) {
     return '';
   }
-  if (row.c.length <= index) {
-    return '';
-  }
-  if (!row.c[index].v) {
+  if (!row.c[index] || !row.c[index].v) {
     return '';
   }
   return row.c[index].v;
@@ -305,7 +302,7 @@ function mkNode(nodeType, className, parentNode) {
 
 function loadSection() {
   let curSection = parseInt(localStorage.getItem('section'));
-  if (!curSection || storage.data.length >= curSection) {
+  if (!curSection || storage.data.length <= curSection) {
     curSection = 0;
   }
   storage.curSection = curSection;
@@ -354,9 +351,7 @@ const google = {
       setResponse: (data) => {
         try {
           storage.data = jsonToData(data);
-          console.log(storage.data);
         } catch (err) {
-          console.log(err);
           storage.data = getDefaultData();
         }
         loadSection();
