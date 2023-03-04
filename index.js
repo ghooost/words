@@ -7,9 +7,7 @@ const storage = {
   root: null,
   contentRoot: null,
   indexes: [],
-  prevScore: 0,
-  curTrue: 0,
-  curFalse: 0,
+  score:[],
 };
 
 function install() {
@@ -40,6 +38,9 @@ function Menu(){
     storage.curPage === 'test',
     () => {storage.curPage = 'test'; Page();},
   ));
+  if (storage.curPage === 'test') {
+    root.appendChild(Score());
+  }
   return root;
 }
 
@@ -56,13 +57,33 @@ function MenuItem(name, isActive, callback){
   return root;
 }
 
+function Score() {
+  let score = 0;
+  if (storage.score.length > 1) {
+    const {pos, neg} = storage.score.reduce((acc, i) => {
+      acc.pos += (i > 0);
+      acc.neg += (i < 0);
+      return acc;
+    }, {pos: 0, neg: 0});
+    score = (pos / storage.score.length * 100).toFixed(1);
+  }
+  let root = storage.root.querySelector('.menu-item-score');
+  if (!root) {
+    root = mkDiv('menu-item');
+    root.classList.add('menu-item-score');
+  };
+  if (storage.score.length < storage.data[storage.curSection].data.length) {
+    root.classList.add('menu-item-score-low-statistic');
+  };
+  root.innerHTML = `Score: ${score}%`;
+  return root;
+}
+
 function Content() {
   const root = mkDiv('content');
   storage.contentRoot = root;
   if (storage.curPage === 'test') {
-    // presetup test
-    storage.curTrue = 0;
-    storage.curFalse = 0;
+    storage.score = [];
     root.appendChild(Card());
   } else {
     root.appendChild(Setup());
@@ -143,11 +164,11 @@ function CardVariant(quest, answer, variants) {
     ev.preventDefault();
     if (ev.target.className === 'card-content-variants-item'){
       if (ev.target.innerHTML === answer) {
-        storage.curTrue += 1;    
+        changeScore(1);
         storage.contentRoot.innerHTML='';
         storage.contentRoot.appendChild(Card());
       } else {
-        storage.curFalse += 1;
+        changeScore(-1);
         ev.target.classList.add('card-content-variants-item-wrong');
       }
     }
@@ -155,12 +176,20 @@ function CardVariant(quest, answer, variants) {
   return root;
 }
 
+function changeScore(value){
+  storage.score.push(value);
+  const maxLen = storage.data[storage.curSection].data.length * 2;
+  if (storage.score.length > maxLen) {
+    storage.score.splice(maxLen, maxLen - storage.score.length);
+  }
+  Score();
+}
 
 function dataToText(data) {
   let ret = '';
   data.forEach(({name, data}) => {
     ret += name + '\n';
-    ret += data.map(([w1, w2]) => `${w1}: ${w2}`).join('\n') + '\n';
+    ret += data.map(([w1, w2]) => `${w1}: ${w2}`).join('\n') + '\n\n';
   })
   return ret;
 }
@@ -251,6 +280,7 @@ onChangeSection = (index) => (ev) => {
   ev.preventDefault();
   storage.curSection = index;
   storage.indexes = [];
+  storage.score = [];
   saveData();
   Page();
 }

@@ -28,6 +28,14 @@ body, html {
   opacity: 1;
 }
 
+.menu-item-score {
+  opacity: 1;
+}
+
+.menu-item-score-low-statistic {
+  opacity: 0.2;
+}
+
 .content {
   flex: 1;
   display: flex;
