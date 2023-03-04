@@ -8,15 +8,20 @@ const storage = {
   contentRoot: null,
   indexes: [],
   score:[],
+  spreadsheetId: '',
 };
 
 function install() {
   storage.root = document.querySelector('#app');
   if (storage.root) {
-    loadData();
     storage.curPage = 'test';
-    Page();
+    Loading();
+    loadDataFromGSheet();
   }
+}
+
+function Loading() {
+  storage.root.innerHTML = '';
 }
 
 function Page() {
@@ -185,33 +190,38 @@ function changeScore(value){
   Score();
 }
 
-function dataToText(data) {
-  let ret = '';
-  data.forEach(({name, data}) => {
-    ret += name + '\n';
-    ret += data.map(([w1, w2]) => `${w1}: ${w2}`).join('\n') + '\n\n';
-  })
-  return ret;
+function extractJsonCell(row, index) {
+  if (!row || !row.c) {
+    return '';
+  }
+  if (row.c.length <= index) {
+    return '';
+  }
+  if (!row.c[index].v) {
+    return '';
+  }
+  return row.c[index].v;
 }
 
-function textToData(text) {
-  const strs = text.split('\n');
+function jsonToData(inData) {
+  const rows = inData.table.rows;
   const data = [];
   let pairs = [];
   let name = '';
-  strs.forEach((str) => {
-    const parts = str.trim().split(/\s*:\s*/);
-    if (parts.length === 1 && parts[0].length) {
+  rows.forEach((row) => {
+    const l1 = extractJsonCell(row, 0);
+    const l2 = extractJsonCell(row, 1);
+    if (l1 && !l2) {
       if (name && pairs.length) {
         data.push({
           name,
           data: pairs,
         });
       };
-      name = parts[0];
+      name = l1;
       pairs = [];
-  } else if(parts.length === 2) {
-      pairs.push([...parts]);
+  } else if(l1 && l2) {
+      pairs.push([l1, l2]);
     }
   });
   if (name && pairs.length) {
@@ -222,6 +232,7 @@ function textToData(text) {
   }
   return data;
 }
+
 
 function Setup() {
   const root = mkDiv('setup-content');
@@ -239,41 +250,17 @@ function Setup() {
   })
   const service = mkDiv('setup-section', root);
   const gs = mkNode('h2', 'setup-section-title', service);
-  gs.innerHTML = 'Edit collections';
-  const to = mkNode('textarea', 'setup-textarea', service);
-  to.value = dataToText(storage.data);
+  gs.innerHTML = 'You need to allow access to the sheet for everybody';
+  const to = mkNode('input', 'setup-link', service);
+  to.placeholder = 'Link to your Google sheet with collections'
+  if (storage.spreadsheetId) {
+    to.value = `https://docs.google.com/spreadsheets/d/${storage.spreadsheetId}/edit?usp=sharing`;
+  }
   const sr = mkDiv('setup-section-content', service);
   const save = mkNode('a', 'setup-button', sr);
   save.innerHTML = "Save"; 
   save.addEventListener('click', onSave);
-  const download = mkDiv('setup-button', sr);
-  download.innerHTML = "Download"; 
-  download.addEventListener('click', onDownload);
-  const reset = mkDiv('setup-button', sr);
-  reset.innerHTML = "Reset to default"; 
-  reset.addEventListener('click', onReset);
   return root;
-}
-
-function onDownload(ev) {
-  ev.preventDefault();
-  const link = document.createElement("a");
-  const file = new Blob([dataToText(storage.data)], { type: 'text/plain' });
-  link.href = URL.createObjectURL(file);
-  link.download = "words.txt";
-  link.click();
-  URL.revokeObjectURL(link.href);
-}
-
-function onReset(ev) {
-  ev.preventDefault();
-  if (!confirm("All custom collections will be removed. Proceed?")) {
-    return;
-  }
-  storage.data = getDefaultData();
-  storage.curSection = 0;
-  saveData();
-  Page();
 }
 
 onChangeSection = (index) => (ev) => {
@@ -287,15 +274,18 @@ onChangeSection = (index) => (ev) => {
 
 function onSave(ev) {
   ev.preventDefault();
-  const str = document.querySelector('.setup-textarea').value;
-  const data = textToData(str);
-  if (storage.curSection >= data.length) {
+  const str = document.querySelector('.setup-link').value;
+  const match = str.match(/https:\/\/docs.google.com\/spreadsheets\/d\/([^\/]+)\//i);
+  if (match && match.length > 1 && match[1]) {
+    storage.spreadsheetId = match[1];
+  } else {
+    storage.data = getDefaultData();
     storage.curSection = 0;
   }
-  storage.data = data;
   storage.indexes = [];
+  Loading();  
   saveData();
-  Page();
+  loadDataFromGSheet();
 }
 
 function mkDiv(className, parentNode) {
@@ -313,20 +303,11 @@ function mkNode(nodeType, className, parentNode) {
   return node;
 }
 
-function loadData() {
-  let data = null;
-  try {
-    data = JSON.parse(localStorage.getItem('words'));
-  } catch (e) {};
-
-  if (!data || !Array.isArray(data) || data.length === 0 || !data[0].name) {
-    data = getDefaultData();
-  };
+function loadSection() {
   let curSection = parseInt(localStorage.getItem('section'));
-  if (!curSection || !data[curSection]) {
+  if (!curSection || storage.data.length >= curSection) {
     curSection = 0;
   }
-  storage.data = data;
   storage.curSection = curSection;
 }
 
@@ -363,6 +344,38 @@ function getDefaultData() {
 }
 
 function saveData() {
-  localStorage.setItem('words', JSON.stringify(storage.data));
   localStorage.setItem('section', storage.curSection);
+  localStorage.setItem('spreadsheetId', storage.spreadsheetId);
+}
+
+const google = {
+  visualization: {
+    Query: {
+      setResponse: (data) => {
+        try {
+          storage.data = jsonToData(data);
+          console.log(storage.data);
+        } catch (err) {
+          console.log(err);
+          storage.data = getDefaultData();
+        }
+        loadSection();
+        Page();
+      }
+    }
+  }
+};
+
+function loadDataFromGSheet() {
+  storage.spreadsheetId = localStorage.getItem('spreadsheetId');
+  if (!storage.spreadsheetId) {
+    storage.data = getDefaultData();
+    loadSection();
+    Page();
+    return;
+  }
+  const url = `https://docs.google.com/spreadsheets/d/${storage.spreadsheetId}/gviz/tq?tqx=out:json&sheet=&tq=select%20*`;
+  const node = document.createElement('script');
+  node.src = url;
+  document.head.appendChild(node);
 }
