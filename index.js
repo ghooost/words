@@ -20,46 +20,44 @@ function install() {
   }
 }
 
+// elements
 function Loading() {
   storage.root.innerHTML = '';
 }
 
 function Page() {
   storage.root.innerHTML = '';
-  const root = mkDiv('root', storage.root);
-  root.appendChild(Menu());
-  root.appendChild(Content());
+  storage.root.appendChild(f(`
+  <div id="page" class="root">
+    <hr data-ele="Menu()">
+    <hr data-ele="Content()">
+  </div>
+  `));
 }
 
 function Menu(){
-  const root = mkDiv('menu');
-  root.appendChild(MenuItem(
-    'Setup',
-    storage.curPage === 'setup',
-    () => {storage.curPage = 'setup'; Page();},
-  ));
-  root.appendChild(MenuItem(
-    storage.data[storage.curSection].name,
-    storage.curPage === 'test',
-    () => {storage.curPage = 'test'; Page();},
-  ));
-  if (storage.curPage === 'test') {
-    root.appendChild(Score());
-  }
-  return root;
+  return f(`
+    <div id="menu" class="menu">
+      <hr data-ele="MenuItem('setup','Setup')">
+      <hr data-ele="MenuItem('test','${storage.data[storage.curSection].name}')">
+      ${storage.curPage === 'test' ? `<hr data-ele="Score()">` : ''}
+    </div>
+  `);
 }
 
-function MenuItem(name, isActive, callback){
-  const root = mkDiv('menu-item');
-  root.innerHTML = name;
-  if (isActive) {
-    root.classList.add('menu-item-selected');
+function MenuItem(id, name){
+  const ele = f(`
+    <a id="menu-${id}" class="menu-item">${name}</a>
+  `);
+  if (storage.curPage === id) {
+    ele.classList.add('menu-item-current');
   }
-  root.addEventListener('click', (ev) => {
+  ele.addEventListener('click', (ev) => {
     ev.preventDefault();
-    callback();
+    storage.curPage = id;
+    Page();
   });
-  return root;
+  return ele;
 }
 
 function Score() {
@@ -72,37 +70,32 @@ function Score() {
     }, {pos: 0, neg: 0});
     score = (pos / storage.score.length * 100).toFixed(1);
   }
-  let root = storage.root.querySelector('.menu-item-score');
-  if (!root) {
-    root = mkDiv('menu-item');
-    root.classList.add('menu-item-score');
-  };
-  if (storage.score.length < storage.data[storage.curSection].data.length) {
-    root.classList.add('menu-item-score-low-statistic');
-  };
-  root.innerHTML = `Score: ${score}%`;
-  return root;
+  return f(`
+    <div id="score" class="menu-item menu-item-score">Score: ${score}%</div>
+  `);
 }
 
 function Content() {
-  const root = mkDiv('content');
-  storage.contentRoot = root;
-  if (storage.curPage === 'test') {
-    storage.score = [];
-    root.appendChild(Card());
-  } else {
-    root.appendChild(Setup());
-  }
-  return root;
+  return f(`
+    <div id="content" class="content">
+      ${
+        storage.curPage === 'test'
+          ? `<hr data-ele="Card()">`
+          : `<hr data-ele="Setup()">`
+      }
+    </div>
+  `);
 }
 
 
 function Card() {
   const section = storage.data[storage.curSection];
   if (!section.data.length) {
-    const root = mkDiv('card-note', content);
-    root.innerHTML = 'Setup words first';
-    return;
+    return f(`
+      <div id="card" class="class-node">
+        There is no words, something bad happend
+      </div>
+    `);
   }
   if (storage.indexes.length === 0) {
     storage.indexes = section.data.map((_, i) => i);
@@ -110,11 +103,11 @@ function Card() {
   const i = Math.floor(Math.random() * 10000) % storage.indexes.length;
   const index = storage.indexes[i];
   storage.indexes.splice(i, 1);
-  const card = Math.random() > 0.5 
+  const [w1, w2, variants] = Math.random() > 0.5 
     ? CardFirst(index, section)
     : CardSecond(index, section);
-
-  return card;
+  
+  return CardVariant(w1, w2, variants);
 }
 
 function CardFirst(index, section) {
@@ -131,7 +124,7 @@ function CardFirst(index, section) {
     variants[index] = variants[i];
     variants[i] = item;
   });
-  return CardVariant(w1, w2, variants);
+  return [w1, w2, variants];
 }
 
 function CardSecond(index, section) {
@@ -148,39 +141,105 @@ function CardSecond(index, section) {
     variants[index] = variants[i];
     variants[i] = item;
   });
-  return CardVariant(w1, w2, variants);
+  return [w1, w2, variants];
 }
 
 
 function CardVariant(quest, answer, variants) {
-  const root = mkDiv('card');
-  const content = mkDiv('card-content', root);
-  const w = mkDiv('card-content-word', content);
-  w.innerHTML = quest;
-  if (quest.length < 7) {
-    w.classList.add('card-content-word-short');
-  }
-  const wrap = mkDiv('card-content-variants', root);
-  variants.forEach((item) => {
-    const a = mkNode('a', 'card-content-variants-item', wrap);
-    a.innerHTML = item;
-  });
-  wrap.addEventListener('click', (ev) => {
+  const shortClass = quest.length < 7
+    ? 'card-content-word-short'
+    : '';
+  
+  const ele = f(`
+    <div id="card" class="card">
+      <div class="card-content">
+        <div class="card-content-word ${shortClass}">${quest}</div>
+      </div>
+      <div class="card-content-variants">
+      ${
+        variants
+          .map(
+            (variant) => `<a class="card-content-variants-item">${variant}</a>`
+          )
+          .join('')
+      }
+      </div>
+  </div>
+  `);
+
+  ele.addEventListener('click', (ev) => {
     ev.preventDefault();
     if (ev.target.className === 'card-content-variants-item'){
       if (ev.target.innerHTML === answer) {
         changeScore(1);
-        storage.contentRoot.innerHTML='';
-        storage.contentRoot.appendChild(Card());
+        Card();
       } else {
         changeScore(-1);
         ev.target.classList.add('card-content-variants-item-wrong');
       }
     }
   })
-  return root;
+  return ele;
 }
 
+function CollectionsMenu() {
+  const mapCollection = ({name}, index) => {
+    const currentClass = (index === storage.curSection) ? 'setup-button-current' : '';
+    return `<a class="setup-button ${currentClass}" data-index="${index}">${name}</a>`;
+  };
+  
+  const ele = f(`
+    <div id="CollectionsMenu" class="setup-section-content">
+      ${storage.data.map(mapCollection).join('')}
+    </div>
+  `);
+  
+  ele.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    if (ev.target.dataset.index) {
+      onChangeSection(ev.target.dataset.index);
+    }
+  })
+  return ele;
+}
+
+function SaveButton() {
+  const ele = f(`<a id='saveButton' class="setup-button">Save</a>`);
+  ele.addEventListener('click', onSave);
+  return ele;
+}
+
+function Setup() {
+  return f(`
+    <div id="setup" class="setup-content">
+      <div class="setup-section">
+        <h2 class="setup-section-title">
+          Choose active collection
+        </h2>
+        <hr data-ele="CollectionsMenu()">
+      </div>
+      <div class="setup-section">
+        <h2 class="setup-section-title">
+          You need to allow access to the sheet for everybody
+        </h2>
+        <input
+          type="text"
+          class="setup-link"
+          placeholder="Link to your Google sheet with collections"
+          value="${
+            storage.spreadsheetId
+              ? `https://docs.google.com/spreadsheets/d/${storage.spreadsheetId}/edit?usp=sharing`
+              : ''
+          }">
+          <div class="setup-section-content">
+            <hr data-ele="SaveButton()">
+          </div>
+      </div>
+    </div>
+  `);
+}
+
+// stuff and callbacks
 function changeScore(value){
   storage.score.push(value);
   const maxLen = storage.data[storage.curSection].data.length * 2;
@@ -189,6 +248,93 @@ function changeScore(value){
   }
   Score();
 }
+
+function onChangeSection(index) {
+  storage.curSection = parseInt(index);
+  storage.indexes = [];
+  storage.score = [];
+  saveData();
+  Menu();
+  CollectionsMenu();
+}
+
+function onSave(ev) {
+  ev.preventDefault();
+  const str = document.querySelector('.setup-link').value;
+  const match = str.match(/https:\/\/docs.google.com\/spreadsheets\/d\/([^\/]+)\//i);
+  if (match && match.length > 1 && match[1]) {
+    storage.spreadsheetId = match[1];
+  } else {
+    storage.data = getDefaultData();
+    storage.curSection = 0;
+  }
+  storage.indexes = [];
+  Loading();  
+  saveData();
+  loadDataFromGSheet();
+}
+
+function getDefaultData() {
+  return [
+    {
+      name: 'Finnish numbers',
+      data: [
+        ['yksi', 'one'],
+        ['kaksi', 'two'],
+        ['kolme', 'three'],
+        ['neljä', 'four'],
+        ['viisi', 'five'],
+        ['kuusi', 'six'],
+        ['seitsemän', 'seven'],
+        ['kahdeksan', 'eight'],
+        ['yhdeksän', 'nine'],
+        ['kymmenen', 'ten'],
+      ],
+    },
+    {
+      name: 'Finnish weekdays',
+      data: [
+        ['maanantai', 'Monday'],
+        ['tiistai', 'Tuesday'],
+        ['keskiviikko', 'Wednesday'],
+        ['torstai', 'Thursday'],
+        ['perjantai', 'Friday'],
+        ['lauantai', 'Saturday'],
+        ['sunnuntai', 'Sunday'],
+      ],
+    },
+  ];
+}
+
+function loadSection() {
+  let curSection = parseInt(localStorage.getItem('section'));
+  if (!curSection || storage.data.length <= curSection) {
+    curSection = 0;
+  }
+  storage.curSection = curSection;
+}
+
+function saveData() {
+  localStorage.setItem('section', storage.curSection || 0);
+  localStorage.setItem('spreadsheetId', storage.spreadsheetId || '');
+}
+
+// google sheets stuff
+const google = {
+  visualization: {
+    Query: {
+      setResponse: (data) => {
+        try {
+          storage.data = jsonToData(data);
+        } catch (err) {
+          storage.data = getDefaultData();
+        }
+        loadSection();
+        Page();
+      }
+    }
+  }
+};
 
 function extractJsonCell(row, index) {
   if (!row || !row.c || row.c.length <= index) {
@@ -230,137 +376,6 @@ function jsonToData(inData) {
   return data;
 }
 
-
-function Setup() {
-  const root = mkDiv('setup-content');
-  const groups = mkDiv('setup-section', root);
-  const gt = mkNode('h2', 'setup-section-title', groups);
-  gt.innerHTML = 'Choose active collection';
-  const gr = mkDiv('setup-section-content', groups);
-  storage.data.forEach(({name}, index) => {
-    const a = mkNode('a', 'setup-button', gr);
-    if (index === storage.curSection) {
-      a.classList.add('setup-button-active');
-    }
-    a.innerHTML = name;
-    a.addEventListener('click', onChangeSection(index));
-  })
-  const service = mkDiv('setup-section', root);
-  const gs = mkNode('h2', 'setup-section-title', service);
-  gs.innerHTML = 'You need to allow access to the sheet for everybody';
-  const to = mkNode('input', 'setup-link', service);
-  to.placeholder = 'Link to your Google sheet with collections'
-  if (storage.spreadsheetId) {
-    to.value = `https://docs.google.com/spreadsheets/d/${storage.spreadsheetId}/edit?usp=sharing`;
-  }
-  const sr = mkDiv('setup-section-content', service);
-  const save = mkNode('a', 'setup-button', sr);
-  save.innerHTML = "Save"; 
-  save.addEventListener('click', onSave);
-  return root;
-}
-
-onChangeSection = (index) => (ev) => {
-  ev.preventDefault();
-  storage.curSection = index;
-  storage.indexes = [];
-  storage.score = [];
-  saveData();
-  Page();
-}
-
-function onSave(ev) {
-  ev.preventDefault();
-  const str = document.querySelector('.setup-link').value;
-  const match = str.match(/https:\/\/docs.google.com\/spreadsheets\/d\/([^\/]+)\//i);
-  if (match && match.length > 1 && match[1]) {
-    storage.spreadsheetId = match[1];
-  } else {
-    storage.data = getDefaultData();
-    storage.curSection = 0;
-  }
-  storage.indexes = [];
-  Loading();  
-  saveData();
-  loadDataFromGSheet();
-}
-
-function mkDiv(className, parentNode) {
-  return mkNode('div', className, parentNode);
-}
-
-function mkNode(nodeType, className, parentNode) {
-  const node = document.createElement(nodeType);
-  if (className) {
-    node.className = className;
-  }
-  if (parentNode) {
-    parentNode.appendChild(node);
-  }
-  return node;
-}
-
-function loadSection() {
-  let curSection = parseInt(localStorage.getItem('section'));
-  if (!curSection || storage.data.length <= curSection) {
-    curSection = 0;
-  }
-  storage.curSection = curSection;
-}
-
-function getDefaultData() {
-  return [
-    {
-      name: 'Finnish numbers',
-      data: [
-        ['yksi', 'one'],
-        ['kaksi', 'two'],
-        ['kolme', 'three'],
-        ['neljä', 'four'],
-        ['viisi', 'five'],
-        ['kuusi', 'six'],
-        ['seitsemän', 'seven'],
-        ['kahdeksan', 'eight'],
-        ['yhdeksän', 'nine'],
-        ['kymmenen', 'ten'],
-      ],
-    },
-    {
-      name: 'Finnish weekdays',
-      data: [
-        ['maanantai', 'Monday'],
-        ['tiistai', 'Tuesday'],
-        ['keskiviikko', 'Wednesday'],
-        ['torstai', 'Thursday'],
-        ['perjantai', 'Friday'],
-        ['lauantai', 'Saturday'],
-        ['sunnuntai', 'Sunday'],
-      ],
-    },
-  ];
-}
-
-function saveData() {
-  localStorage.setItem('section', storage.curSection);
-  localStorage.setItem('spreadsheetId', storage.spreadsheetId);
-}
-
-const google = {
-  visualization: {
-    Query: {
-      setResponse: (data) => {
-        try {
-          storage.data = jsonToData(data);
-        } catch (err) {
-          storage.data = getDefaultData();
-        }
-        loadSection();
-        Page();
-      }
-    }
-  }
-};
-
 function loadDataFromGSheet() {
   storage.spreadsheetId = localStorage.getItem('spreadsheetId');
   if (!storage.spreadsheetId) {
@@ -374,3 +389,30 @@ function loadDataFromGSheet() {
   node.src = url;
   document.head.appendChild(node);
 }
+
+// tiny magic to allow
+// 1. write html templates in HTML-like style
+// 2. but be able to additionally setup added nodes
+// 3. repaint a random node only - f.e. Menu() call will
+// repaint Menu and it's child nodes
+function f(str) {
+  const df = document.createElement('div');
+  df.innerHTML = str;
+  const tags = [...df.querySelectorAll('[data-ele]')];
+  tags.forEach((node) => {
+    try {
+      const newNode = eval(node.dataset.ele);
+      node.parentNode.replaceChild(newNode, node);
+    } catch (err) {
+      console.log('Error:', err, node.dataset.ele);
+    }
+  })
+  const root = df.firstElementChild;
+  const id = root.id;
+  let node = document.querySelector(`#${id}`);
+  if (node) {
+    node.parentNode.replaceChild(root, node);
+  };
+  return root;
+};
+

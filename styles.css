@@ -24,7 +24,7 @@ body, html {
   font-size: 1em;
 }
 
-.menu-item-selected {
+.menu-item-current {
   opacity: 1;
 }
 
@@ -88,7 +88,7 @@ body, html {
   cursor: pointer;
 }
 
-.setup-button-active {
+.setup-button-current {
   font-weight: bold;
 }
 
@@ -109,8 +109,8 @@ body, html {
   display: flex;
   justify-content: center;
   align-items: center;
-  display: flex;
   overflow: hidden;
+  flex-direction: column;
 }
 
 .card-content-word {
