@@ -1,11 +1,12 @@
 document.addEventListener("DOMContentLoaded", install);
 
+// there is no reactivity, less complexity and more freedon
+// for such a tiny app.
 const storage = {
   data: [],
   curSection: 0,
   curPage: '',
   root: null,
-  contentRoot: null,
   indexes: [],
   score:[],
   spreadsheetId: '',
@@ -150,19 +151,15 @@ function CardVariant(quest, answer, variants) {
     ? 'card-content-word-short'
     : '';
   
+  const mapVariant = (variant) => `<a class="card-content-variants-item">${variant}</a>`;
+
   const ele = f(`
     <div id="card" class="card">
       <div class="card-content">
         <div class="card-content-word ${shortClass}">${quest}</div>
       </div>
       <div class="card-content-variants">
-      ${
-        variants
-          .map(
-            (variant) => `<a class="card-content-variants-item">${variant}</a>`
-          )
-          .join('')
-      }
+        ${variants.map(mapVariant).join('')}
       </div>
   </div>
   `);
@@ -392,9 +389,9 @@ function loadDataFromGSheet() {
 
 // tiny magic to allow
 // 1. write html templates in HTML-like style
-// 2. but be able to additionally setup added nodes
-// 3. repaint a random node only - f.e. Menu() call will
-// repaint Menu and it's child nodes
+// 2. be able to setup added nodes
+// 3. limit repaints - f.e. Menu() call will
+// repaint Menu and it's child nodes only
 function f(str) {
   const df = document.createElement('div');
   df.innerHTML = str;
